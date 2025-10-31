@@ -1,10 +1,15 @@
-```php
 <?php
-include "inc/header.php";
+// PHẦN 1: TOÀN BỘ LOGIC XỬ LÝ (ĐƯỢC ĐƯA LÊN ĐẦU)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require_once "inc/auth.php";
 require_once "inc/db.php";
+
+check_login();
 check_role(['admin','hr']);
 
-// XỬ LÝ THÊM HỢP ĐỒNG
+// XỬ LÝ THÊM HỢP ĐỒNG (Không thay đổi)
 if (isset($_POST['add'])) {
     $employee_id = $_POST['employee_id'] ?? null;
     $contract_no = $_POST['contract_no'] ?? '';
@@ -27,7 +32,7 @@ if (isset($_POST['add'])) {
     exit;
 }
 
-// XỬ LÝ SỬA HỢP ĐỒNG
+// XỬ LÝ SỬA HỢP ĐỒNG (Không thay đổi)
 if (isset($_POST['edit'])) {
     $id = $_POST['id'] ?? 0;
     $employee_id = $_POST['employee_id'] ?? null;
@@ -54,7 +59,7 @@ if (isset($_POST['edit'])) {
     exit;
 }
 
-// XỬ LÝ XÓA HỢP ĐỒNG 
+// XỬ LÝ XÓA HỢP ĐỒNG (Không thay đổi)
 if (isset($_GET['delete'])) {
     try {
         $stmt = $pdo->prepare("DELETE FROM contracts WHERE id=?");
@@ -67,8 +72,33 @@ if (isset($_GET['delete'])) {
     }
 }
 
+// PHẦN 2: HIỂN THỊ HTML (SAU KHI LOGIC ĐÃ CHẠY XONG)
+include "inc/header.php";
+
 // LẤY DỮ LIỆU HIỂN THỊ
-$contracts = $pdo->query("SELECT c.*, e.full_name FROM contracts c LEFT JOIN employees e ON c.employee_id = e.id ORDER BY c.id DESC")->fetchAll(PDO::FETCH_ASSOC);
+// *** THAY ĐỔI 1: XỬ LÝ TÌM KIẾM VÀ CẬP NHẬT TRUY VẤN SQL ***
+$search_term = $_GET['search'] ?? '';
+$params = [];
+
+$sql = "SELECT c.*, e.full_name 
+        FROM contracts c 
+        LEFT JOIN employees e ON c.employee_id = e.id";
+
+if (!empty($search_term)) {
+    // Tìm kiếm theo tên nhân viên hoặc số hợp đồng
+    $sql .= " WHERE e.full_name LIKE ? OR c.contract_no LIKE ?";
+    $like_term = '%' . $search_term . '%';
+    $params = [$like_term, $like_term];
+}
+
+// Sắp xếp theo ngày bắt đầu (cũ nhất lên trước)
+$sql .= " ORDER BY c.start_date ASC";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$contracts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Lấy danh sách nhân viên cho modal
 $employees = $pdo->query("SELECT id, full_name FROM employees ORDER BY full_name")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
@@ -85,17 +115,31 @@ $employees = $pdo->query("SELECT id, full_name FROM employees ORDER BY full_name
     <div class="alert alert-danger"> Không thể xóa hợp đồng (có lỗi hệ thống).</div>
     <?php } ?>
 
-    <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addModal">
-        <i class="bi bi-plus-circle me-1"></i> Thêm hợp đồng
-    </button>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addModal">
+                <i class="bi bi-plus-circle me-1"></i> Thêm hợp đồng
+            </button>
+        </div>
+        <div class="col-md-6">
+            <form method="GET" class="d-flex">
+                <input type="text" name="search" class="form-control me-2" placeholder="Tìm theo tên NV hoặc số HĐ..."
+                    value="<?= htmlspecialchars($search_term) ?>">
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="bi bi-search"></i>
+                </button>
+            </form>
+        </div>
+    </div>
 
-    <div class="card shadow-sm">
+
+    <div class="card shadow-sm glass">
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-bordered table-hover align-middle">
-                    <thead class="table-dark text-center">
+                    <thead class="text-center">
                         <tr>
-                            <th>ID</th>
+                            <th width="50">ID</th>
                             <th>Nhân viên</th>
                             <th>Số hợp đồng</th>
                             <th>Loại</th>
@@ -107,9 +151,10 @@ $employees = $pdo->query("SELECT id, full_name FROM employees ORDER BY full_name
                         </tr>
                     </thead>
                     <tbody>
+                        <?php $stt = 1; ?>
                         <?php foreach ($contracts as $c) { ?>
                         <tr>
-                            <td class="text-center"><?= $c['id'] ?></td>
+                            <td class="text-center"><?= $stt++ ?></td>
                             <td><?= htmlspecialchars($c['full_name'] ?? '---') ?></td>
                             <td><?= htmlspecialchars($c['contract_no']) ?></td>
                             <td><?= htmlspecialchars($c['contract_type']) ?></td>
@@ -135,86 +180,6 @@ $employees = $pdo->query("SELECT id, full_name FROM employees ORDER BY full_name
                             </td>
                         </tr>
 
-                        <div class="modal fade" id="editModal<?= $c['id'] ?>" tabindex="-1">
-                            <div class="modal-dialog modal-lg">
-                                <div class="modal-content">
-                                    <form method="POST">
-                                        <div class="modal-header bg-warning text-white">
-                                            <h5 class="modal-title">Sửa hợp đồng</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <input type="hidden" name="id" value="<?= $c['id'] ?>">
-                                            <div class="row g-3">
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Nhân viên</label>
-                                                    <select name="employee_id" class="form-control" required>
-                                                        <option value="">-- Chọn nhân viên --</option>
-                                                        <?php foreach($employees as $emp) { ?>
-                                                        <option value="<?= $emp['id'] ?>"
-                                                            <?= $emp['id']==$c['employee_id'] ? 'selected' : '' ?>>
-                                                            <?= htmlspecialchars($emp['full_name']) ?></option>
-                                                        <?php } ?>
-                                                    </select>
-                                                </div>
-
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Số hợp đồng</label>
-                                                    <input type="text" name="contract_no" class="form-control"
-                                                        value="<?= htmlspecialchars($c['contract_no']) ?>">
-                                                </div>
-
-                                                <div class="col-md-4">
-                                                    <label class="form-label">Loại hợp đồng</label>
-                                                    <input type="text" name="contract_type" class="form-control"
-                                                        value="<?= htmlspecialchars($c['contract_type']) ?>">
-                                                </div>
-
-                                                <div class="col-md-4">
-                                                    <label class="form-label">Ngày bắt đầu</label>
-                                                    <input type="date" name="start_date" class="form-control"
-                                                        value="<?= $c['start_date'] ?>">
-                                                </div>
-
-                                                <div class="col-md-4">
-                                                    <label class="form-label">Ngày kết thúc (để trống nếu vô thời
-                                                        hạn)</label>
-                                                    <input type="date" name="end_date" class="form-control"
-                                                        value="<?= $c['end_date'] ?>">
-                                                </div>
-
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Lương cơ bản</label>
-                                                    <input type="number" name="salary_base" class="form-control"
-                                                        step="0.01" value="<?= $c['salary_base'] ?>">
-                                                </div>
-
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Trạng thái</label>
-                                                    <select name="status" class="form-control">
-                                                        <option value="active"
-                                                            <?= $c['status']=='active' ? 'selected' : '' ?>>
-                                                            active</option>
-                                                        <option value="expired"
-                                                            <?= $c['status']=='expired' ? 'selected' : '' ?>>expired
-                                                        </option>
-                                                        <option value="terminated"
-                                                            <?= $c['status']=='terminated' ? 'selected' : '' ?>>
-                                                            terminated</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="submit" name="edit" class="btn btn-warning">Lưu</button>
-                                            <button type="button" class="btn btn-secondary"
-                                                data-bs-dismiss="modal">Đóng</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-
                         <?php } ?>
                     </tbody>
                 </table>
@@ -223,11 +188,88 @@ $employees = $pdo->query("SELECT id, full_name FROM employees ORDER BY full_name
     </div>
 </div>
 
+<?php foreach ($contracts as $c) { ?>
+<div class="modal fade" id="editModal<?= $c['id'] ?>" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content glass">
+            <form method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sửa hợp đồng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" value="<?= $c['id'] ?>">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nhân viên</label>
+                            <select name="employee_id" class="form-control" required>
+                                <option value="">-- Chọn nhân viên --</option>
+                                <?php foreach($employees as $emp) { ?>
+                                <option value="<?= $emp['id'] ?>"
+                                    <?= $emp['id']==$c['employee_id'] ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($emp['full_name']) ?></option>
+                                <?php } ?>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Số hợp đồng</label>
+                            <input type="text" name="contract_no" class="form-control"
+                                value="<?= htmlspecialchars($c['contract_no']) ?>">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Loại hợp đồng</label>
+                            <input type="text" name="contract_type" class="form-control"
+                                value="<?= htmlspecialchars($c['contract_type']) ?>">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Ngày bắt đầu</label>
+                            <input type="date" name="start_date" class="form-control" value="<?= $c['start_date'] ?>">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Ngày kết thúc (để trống nếu vô thời
+                                hạn)</label>
+                            <input type="date" name="end_date" class="form-control" value="<?= $c['end_date'] ?>">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Lương cơ bản</label>
+                            <input type="number" name="salary_base" class="form-control" step="0.01"
+                                value="<?= $c['salary_base'] ?>">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Trạng thái</label>
+                            <select name="status" class="form-control">
+                                <option value="active" <?= $c['status']=='active' ? 'selected' : '' ?>>
+                                    Active</option>
+                                <option value="expired" <?= $c['status']=='expired' ? 'selected' : '' ?>>Expired
+                                </option>
+                                <option value="terminated" <?= $c['status']=='terminated' ? 'selected' : '' ?>>
+                                    Terminated</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" name="edit" class="btn btn-warning">Lưu</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php } ?>
+
+
 <div class="modal fade" id="addModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+        <div class="modal-content glass">
             <form method="POST">
-                <div class="modal-header bg-primary text-white">
+                <div class="modal-header">
                     <h5 class="modal-title">Thêm hợp đồng</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>

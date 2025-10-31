@@ -7,7 +7,6 @@ require_once "auth.php";
 check_login();
 $role = $_SESSION['role'];
 
-// Lấy trang hiện tại (ví dụ: 'employees.php') để làm nổi bật link
 $current_page = basename($_SERVER['PHP_SELF']);
 
 function is_admin_or_hr() {
@@ -36,10 +35,9 @@ function is_employee() {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
-    /* Sidebar Panel (Trái) */
     .sidebar {
-        width: 250px;
-        min-width: 250px;
+        width: 230px;
+        min-width: 230px;
         height: 100vh;
         position: fixed;
         top: 0;
@@ -48,6 +46,20 @@ function is_employee() {
         color: white;
         padding-top: 20px;
         z-index: 1000;
+        overflow-y: auto;
+    }
+
+    .sidebar::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb {
+        background-color: #6c757d;
+        border-radius: 10px;
+    }
+
+    .sidebar::-webkit-scrollbar-track {
+        background: transparent;
     }
 
     .sidebar .sidebar-brand {
@@ -68,7 +80,6 @@ function is_employee() {
 
     .sidebar .sidebar-brand span {
         color: #0d6efd;
-        /* Màu xanh dương */
     }
 
     .sidebar hr.sidebar-divider {
@@ -120,51 +131,92 @@ function is_employee() {
     }
 
     .main-wrapper {
-        margin-left: 250px;
-        width: calc(100% - 250px);
+        margin-left: 230px;
+        width: calc(100% - 230px);
         min-height: 100vh;
         background-color: #f8f9fa;
     }
 
-    /* === BẮT ĐẦU CSS TOPBAR MỚI === */
+    /* === 1. SỬA TOPBAR === */
     .topbar {
         background-color: #ffffff;
-        padding: 12px 30px;
+        padding: 0 30px;
         border-bottom: 1px solid #dee2e6;
         display: flex;
+        /* THAY ĐỔI: Sử dụng space-between để căn đều 3 mục */
         justify-content: space-between;
-        /* Đẩy 2 item ra 2 bên */
         align-items: center;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         height: 80px;
     }
 
-    /* Tiêu đề bên trái */
     .topbar-title {
         font-size: 1.6rem;
         font-weight: 600;
         color: #0d6efd;
-        /* Màu xanh cho nổi bật */
         margin: 0;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        /* THÊM: Đặt kích thước cố định để căn giữa */
+        flex-basis: 250px;
     }
 
+    .sparkle-text {
+        background: linear-gradient(90deg,
+                #0d6efd,
+                #454d55,
+                #0d6efd);
+        background-size: 300% 100%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: sparkle-animation 5s linear infinite;
+        font-weight: 700;
+    }
+
+    @keyframes sparkle-animation {
+        0% {
+            background-position: 150% 50%;
+        }
+
+        100% {
+            background-position: -150% 50%;
+        }
+    }
+
+    /* === 2. THÊM VÙNG ẢNH Ở GIỮA === */
+    .topbar-center-image {
+        flex-grow: 1;
+        /* Chiếm hết không gian ở giữa */
+        text-align: center;
+        height: 100%;
+    }
+
+    .topbar-center-image img {
+        height: 100%;
+        width: auto;
+        max-width: 100%;
+        object-fit: contain;
+    }
+
+
+    /* === 3. SỬA VÙNG LOGO BÊN PHẢI === */
     .company-logo-top {
-        height: auto;
-        max-height: none;
+        height: 80px;
         display: flex;
         align-items: center;
+        justify-content: flex-end;
+        /* Đẩy logo về bên phải */
+        /* THÊM: Đặt kích thước cố định để căn giữa */
+        flex-basis: 250px;
     }
 
     .company-logo-top img {
         height: 80px;
-        /* hoặc 100px nếu bạn muốn to hơn nữa */
+        /* Giữ nguyên 80px */
         width: auto;
         object-fit: contain;
     }
 
-    /* === KẾT THÚC THAY ĐỔI CSS === */
 
     .content {
         margin-left: 0 !important;
@@ -172,10 +224,26 @@ function is_employee() {
     }
 
     @media (max-width: 992px) {
-
-        /* Tăng breakpoint cho topbar */
         .topbar-title {
             font-size: 1.2rem;
+            flex-basis: auto;
+            /* Tắt kích thước cố định */
+        }
+
+        .topbar-center-image {
+            display: none;
+            /* Ẩn ảnh ở giữa trên màn hình nhỏ */
+        }
+
+        .topbar {
+            padding: 0 15px;
+            justify-content: space-between;
+            /* Quay lại space-between */
+        }
+
+        .company-logo-top {
+            flex-basis: auto;
+            /* Tắt kích thước cố định */
         }
     }
 
@@ -185,6 +253,7 @@ function is_employee() {
             width: 100%;
             height: auto;
             margin-bottom: 15px;
+            overflow-y: hidden;
         }
 
         .main-wrapper {
@@ -200,16 +269,12 @@ function is_employee() {
             padding: 12px 15px;
             height: auto;
             flex-direction: column;
-            /* Xếp chồng trên di động */
             gap: 10px;
         }
 
-
         .company-logo-top {
             align-self: flex-end;
-            /* Đẩy logo sang phải */
             height: 40px;
-            /* Giảm chiều cao trên di động */
         }
     }
     </style>
@@ -238,6 +303,11 @@ function is_employee() {
                 class="nav-link <?php echo ($current_page == 'departments.php') ? 'active' : ''; ?>">
                 <i class="bi bi-building"></i>Phòng ban
             </a>
+
+            <a href="positions.php" class="nav-link <?php echo ($current_page == 'positions.php') ? 'active' : ''; ?>">
+                <i class="bi bi-briefcase-fill"></i>Chức vụ
+            </a>
+
             <a href="contracts.php" class="nav-link <?php echo ($current_page == 'contracts.php') ? 'active' : ''; ?>">
                 <i class="bi bi-file-earmark-text-fill"></i>Hợp đồng
             </a>
@@ -254,7 +324,7 @@ function is_employee() {
             <a href="stats.php" class="nav-link <?php echo ($current_page == 'stats.php') ? 'active' : ''; ?>">
                 <i class="bi bi-graph-up"></i>Thống kê
             </a>
-            <?php if ($role == 'admin'): // Chỉ admin mới thấy 'Quản lý Tài khoản' ?>
+            <?php if ($role == 'admin'): ?>
             <a href="users.php" class="nav-link <?php echo ($current_page == 'users.php') ? 'active' : ''; ?>">
                 <i class="bi bi-person-lock-fill"></i>Quản lý Tài khoản
             </a>
@@ -283,8 +353,11 @@ function is_employee() {
         <div class="main-wrapper">
 
             <div class="topbar">
-                <h1 class="topbar-title"> CƠ KHÍ Ý TƯỞNG </h1>
+                <h1 class="topbar-title sparkle-text"> CƠ KHÍ Ý TƯỞNG </h1>
 
+                <div class="topbar-center-image">
+                    <img src="assets/img/bieutuong.png" alt="Ảnh banner trung tâm">
+                </div>
                 <div class="company-logo-top">
                     <img src="assets/img/logo.png" alt="Logo Công ty">
                 </div>
