@@ -169,13 +169,60 @@ CREATE TABLE payrolls (
   period_to DATE,
   gross_salary DECIMAL(12,2),
   net_salary DECIMAL(12,2),
+  base_salary_amount DECIMAL(12,2) DEFAULT 0,
+  working_hours DECIMAL(8,2) DEFAULT 0,
+  overtime_hours DECIMAL(8,2) DEFAULT 0,
+  overtime_pay DECIMAL(12,2) DEFAULT 0,
+  allowance_total DECIMAL(12,2) DEFAULT 0,
+  reward_total DECIMAL(12,2) DEFAULT 0,
+  discipline_total DECIMAL(12,2) DEFAULT 0,
+  notes TEXT,
   status ENUM('draft','finalized','paid') DEFAULT 'draft',
   FOREIGN KEY (employee_id) REFERENCES employees(id)
 );
 
-INSERT INTO payrolls (employee_id, period_from, period_to, gross_salary, net_salary, status) VALUES
-(1, '2024-09-01', '2024-09-30', 12000000, 11000000, 'paid'),
-(2, '2024-09-01', '2024-09-30', 10000000, 9500000, 'paid');
+INSERT INTO payrolls (employee_id, period_from, period_to, gross_salary, net_salary, status, base_salary_amount, working_hours, overtime_hours, overtime_pay, allowance_total, reward_total, discipline_total, notes) VALUES
+(1, '2024-09-01', '2024-09-30', 12000000, 11000000, 'paid', 11500000, 208, 12, 1500000, 500000, 1000000, 2000000, 'Bảng lương mẫu có tăng ca'),
+(2, '2024-09-01', '2024-09-30', 10000000, 9500000, 'paid', 10000000, 208, 0, 0, 0, 0, 500000, 'Bảng lương mẫu có kỷ luật');
+
+-- -----------------------------
+-- BẢNG allowances (Phụ cấp)
+-- -----------------------------
+CREATE TABLE allowances (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employee_id INT NOT NULL,
+  type ENUM('hazard','overtime','other') DEFAULT 'hazard',
+  allowance_date DATE NOT NULL,
+  amount DECIMAL(12,2) NOT NULL,
+  note VARCHAR(255),
+  FOREIGN KEY (employee_id) REFERENCES employees(id)
+);
+
+INSERT INTO allowances (employee_id, type, allowance_date, amount, note) VALUES
+(1, 'hazard', '2024-09-15', 300000, 'Phụ cấp độc hại tháng 9'),
+(1, 'overtime', '2024-09-20', 450000, 'Phụ cấp tăng ca dự án A'),
+(2, 'hazard', '2024-09-10', 200000, 'Phụ cấp độc hại ca đêm');
+
+-- -----------------------------
+-- BẢNG performance_reviews (Đánh giá hiệu suất)
+-- -----------------------------
+CREATE TABLE performance_reviews (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employee_id INT NOT NULL,
+  review_period VARCHAR(50) NOT NULL,
+  reviewer VARCHAR(100) NOT NULL,
+  score TINYINT CHECK (score BETWEEN 1 AND 5),
+  strengths TEXT,
+  improvements TEXT,
+  goals TEXT,
+  status ENUM('draft','in_review','approved') DEFAULT 'draft',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (employee_id) REFERENCES employees(id)
+);
+
+INSERT INTO performance_reviews (employee_id, review_period, reviewer, score, strengths, improvements, goals, status) VALUES
+(1, 'Q3-2024', 'Nguyễn Văn HR', 4, 'Hoàn thành tốt kế hoạch bảo trì', 'Cần cải thiện báo cáo chất lượng', 'Đạt chứng chỉ an toàn cấp 2', 'approved'),
+(2, 'Q3-2024', 'Trần Thị HR', 3, 'Tinh thần hỗ trợ đội ca đêm', 'Cần tuân thủ giờ giấc tốt hơn', 'Giảm số lần đi muộn xuống 0', 'in_review');
 
 -- -----------------------------
 -- BẢNG leaves (Nghỉ phép)

@@ -318,6 +318,12 @@ function is_employee() {
             <a href="payrolls.php" class="nav-link <?php echo ($current_page == 'payrolls.php') ? 'active' : ''; ?>">
                 <i class="bi bi-cash-stack"></i>Tiền lương
             </a>
+            <a href="allowances.php" class="nav-link <?php echo ($current_page == 'allowances.php') ? 'active' : ''; ?>">
+                <i class="bi bi-award"></i>Phụ cấp
+            </a>
+            <a href="performance_reviews.php" class="nav-link <?php echo ($current_page == 'performance_reviews.php') ? 'active' : ''; ?>">
+                <i class="bi bi-clipboard-check"></i>Đánh giá
+            </a>
             <a href="reports.php" class="nav-link <?php echo ($current_page == 'reports.php') ? 'active' : ''; ?>">
                 <i class="bi bi-clipboard-data-fill"></i>Báo cáo
             </a>

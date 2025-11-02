@@ -93,6 +93,10 @@ $actions = $actions->fetchAll(PDO::FETCH_ASSOC);
 $leaves = $pdo->prepare("SELECT * FROM leaves WHERE employee_id = ? ORDER BY from_date DESC");
 $leaves->execute([$employee_id]);
 $leaves = $leaves->fetchAll(PDO::FETCH_ASSOC);
+
+$reviews_stmt = $pdo->prepare("SELECT * FROM performance_reviews WHERE employee_id = ? ORDER BY created_at DESC");
+$reviews_stmt->execute([$employee_id]);
+$performance_reviews = $reviews_stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <?php include "inc/header.php"; ?>
@@ -339,6 +343,51 @@ $leaves = $leaves->fetchAll(PDO::FETCH_ASSOC);
             </table>
         <?php else: ?>
             <p>Chưa có dữ liệu khen thưởng/kỷ luật.</p>
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- Đánh giá hiệu suất -->
+<div class="card mb-3">
+    <div class="card-header bg-info text-white">Đánh giá công việc</div>
+    <div class="card-body">
+        <?php if ($performance_reviews): ?>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Kỳ đánh giá</th>
+                            <th>Điểm</th>
+                            <th>Người đánh giá</th>
+                            <th>Trạng thái</th>
+                            <th>Thế mạnh</th>
+                            <th>Mục tiêu/Kế hoạch cải thiện</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($performance_reviews as $review): ?>
+                            <tr>
+                                <td class="text-nowrap">
+                                    <?= htmlspecialchars($review['review_period']) ?><br>
+                                    <small class="text-muted"><?= htmlspecialchars($review['created_at']) ?></small>
+                                </td>
+                                <td class="text-center"><span class="badge bg-primary"><?= htmlspecialchars($review['score']) ?>/5</span></td>
+                                <td><?= htmlspecialchars($review['reviewer']) ?></td>
+                                <td class="text-center text-capitalize"><?= str_replace('_', ' ', htmlspecialchars($review['status'])) ?></td>
+                                <td><?= nl2br(htmlspecialchars($review['strengths'] ?? '')) ?></td>
+                                <td>
+                                    <strong>Cải thiện:</strong><br>
+                                    <?= nl2br(htmlspecialchars($review['improvements'] ?? '')) ?><br>
+                                    <strong>Mục tiêu:</strong><br>
+                                    <?= nl2br(htmlspecialchars($review['goals'] ?? '')) ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php else: ?>
+            <p>Chưa có đánh giá nào được tạo.</p>
         <?php endif; ?>
     </div>
 </div>
