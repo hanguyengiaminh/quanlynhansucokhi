@@ -129,7 +129,7 @@ $payrolls = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <th>Lương gộp</th>
                             <th>Lương thực lĩnh</th>
                             <th>Trạng thái</th>
-                            <th>Hành động</th>
+                            <th width="180">Hành động</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -144,6 +144,11 @@ $payrolls = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <td class="text-end"><?= number_format($p['net_salary'],0,',','.') ?></td>
                             <td class="text-center"><?= ucfirst($p['status']) ?></td>
                             <td class="text-center">
+                                <a href="download_payroll.php?id=<?= $p['id'] ?>"
+                                    class="btn btn-success btn-sm text-white" title="Tải phiếu">
+                                    <i class="bi bi-download"></i>
+                                </a>
+
                                 <button class="btn btn-warning btn-sm" data-bs-toggle="modal"
                                     data-bs-target="#editModal<?= $p['id'] ?>" title="Sửa">
                                     <i class="bi bi-pencil"></i>
